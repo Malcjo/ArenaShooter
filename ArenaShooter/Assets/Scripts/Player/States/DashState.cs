@@ -12,14 +12,21 @@ public class DashState : IPlayerState
     public void Enter()
     {
         ctx.dashPressed = false;
-        ctx.canDash = false;
+        ctx.isDashing = true;
+
+
+
         Vector3 flat = new Vector3(ctx.velocity.x, 0, ctx.velocity.z);
         dir = flat.sqrMagnitude < 0.1f ? ctx.transform.forward : flat.normalized;
         t = 0f;
-        ctx.StartCoroutine(Cooldown());
+
+        ctx.ConsumeDashCharge();
     }
 
-    public void Exit() { }
+    public void Exit() 
+    {
+        ctx.isDashing = false;
+    }
     public void HandleInput() { }
 
     public void Tick()

@@ -1,3 +1,4 @@
+using System.Collections;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -20,6 +21,15 @@ public class PlayerContext : MonoBehaviour
     public float dashSpeed = 22f;
     public float dashDuration = 0.18f;
     public float dashCooldown = 0.7f;
+
+    [Header("Dash Charges")]
+    public int maxDashCharges = 2;
+    [HideInInspector] public int dashCharges;
+    public float dashRefillCooldown = 0.9f;   // time to refill after you’re out
+    public bool groundedRequiredForRefill = true;
+
+    [HideInInspector] public bool isDashing;   // blocks queuing while in dash
+    Coroutine dashRefillRoutine;
 
     [Header("Slide")]
     public float slideSpeed = 12f;
@@ -68,6 +78,7 @@ public class PlayerContext : MonoBehaviour
 
     void Start()
     {
+        dashCharges = maxDashCharges; // start with full dashes
         StateMachine.SetState(new GroundedState(this));
     }
 
@@ -102,6 +113,37 @@ public class PlayerContext : MonoBehaviour
         return false;
     }
 
+    public bool CanPressDash()
+    {
+        // No pressing while currently dashing, and need at least one charge
+        return !isDashing && dashCharges > 0;
+    }
+
+    public void ConsumeDashCharge()
+    {
+        dashCharges = Mathf.Max(0, dashCharges - 1);
+        if (dashCharges == 0) StartDashRefillIfNeeded();
+    }
+
+    public void StartDashRefillIfNeeded()
+    {
+        if (dashRefillRoutine != null) return;
+        dashRefillRoutine = StartCoroutine(DashRefill());
+    }
+
+    IEnumerator DashRefill()
+    {
+        // Must be grounded (if required) to begin refill
+        if (groundedRequiredForRefill)
+        {
+            while (!characterController.isGrounded) yield return null;
+        }
+        // Wait cooldown, then refill all
+        yield return new WaitForSeconds(dashRefillCooldown);
+        dashCharges = maxDashCharges;
+        dashRefillRoutine = null;
+    }
+
     public void OnMove(InputAction.CallbackContext context)
         => moveInput = context.ReadValue<Vector2>();
 
@@ -115,7 +157,9 @@ public class PlayerContext : MonoBehaviour
 
     public void OnDash(InputAction.CallbackContext context)
     {
-        if (context.performed) dashPressed = true;
+        if (context.performed) return;
+        if(!CanPressDash()) return;
+        dashPressed = true;
     }
 
     public void OnSlide(InputAction.CallbackContext context)
