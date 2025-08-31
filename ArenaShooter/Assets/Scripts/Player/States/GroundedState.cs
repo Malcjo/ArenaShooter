@@ -11,7 +11,7 @@ public class GroundedState : IPlayerState
     public void HandleInput()
     {
         if (ctx.weaponWheelHeld) { ctx.StateMachine.SetState(new WeaponWheelState(ctx)); return; }
-        if (ctx.dashPressed && ctx.canDash) { ctx.StateMachine.SetState(new DashState(ctx)); return; }
+        if (ctx.dashPressed) { ctx.StateMachine.SetState(new DashState(ctx)); return; }
         if (ctx.slidePressed && ctx.canSlide && ctx.moveInput.sqrMagnitude > 0.2f) { ctx.StateMachine.SetState(new SlideState(ctx)); return; }
         if (ctx.jumpPressed)
         {
@@ -24,33 +24,36 @@ public class GroundedState : IPlayerState
     public void Tick()
     {
         ctx.LookTick();
+        float dt = Time.deltaTime;
 
-        Vector3 wish = MovementUtility.CamAlignedWishdir(ctx.cam, ctx.transform, ctx.moveInput) * ctx.moveSpeed;
-        
-        Vector3 flat = new Vector3(ctx.velocity.x, 0f, ctx.velocity.z);
+        bool wantJump = ctx.jumpPressed || (ctx.autoHop && ctx.jumpHeld);
 
-        if (ctx.useAcceleration)
+        Vector3 desiredDirection = MovementUtility.CamAlignedWishdir(ctx.cam, ctx.transform, ctx.moveInput);
+        float desiredSpeed = ctx.EffectiveGroundMoveSpeed;
+
+        // Skip one friction tick if we’re jumping this frame (bhop feel)
+        if (!wantJump)
         {
-            flat = Vector3.MoveTowards(flat, wish, ctx.groundAccel * Time.deltaTime);
+            MovementQuake.ApplyFriction(ref ctx.velocity, ctx.groundFriction, ctx.groundStopSpeed, dt);
         }
-        else {
-            flat = Vector3.Lerp(flat, wish, ctx.groundSnapLerp);
-        }
-        
-        ctx.velocity.x = flat.x; 
-        ctx.velocity.z = flat.z;
+        MovementQuake.Accelerate(ref ctx.velocity, desiredDirection, desiredSpeed, ctx.groundAccelQ, dt);
+        MovementQuake.ClampHorizontalSpeed(ref ctx.velocity, ctx.EffectiveMaxHorizontalSpeed);
 
-        //is the player grounded?
-        if (!ctx.characterController.isGrounded)
+        if (wantJump)
         {
+            ctx.velocity.y = ctx.jumpForce;
+            ctx.jumpPressed = false;
             ctx.StateMachine.SetState(new AirborneState(ctx));
-            return;
+        }
+        else
+        {
+            if (ctx.velocity.y < -2f) ctx.velocity.y = -2f;
+            if (!ctx.characterController.isGrounded) ctx.StateMachine.SetState(new AirborneState(ctx));
         }
 
-        if (ctx.velocity.y < -2f) ctx.velocity.y = -2f;
-
-        ctx.characterController.Move(ctx.velocity * Time.deltaTime);
+        ctx.characterController.Move(ctx.velocity * dt);
     }
+
 
     public void FixedTick() { }
 }

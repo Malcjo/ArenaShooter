@@ -11,26 +11,33 @@ public class AirborneState : IPlayerState
     public void HandleInput()
     {
         if (ctx.weaponWheelHeld) { ctx.StateMachine.SetState(new WeaponWheelState(ctx)); return; }
-        if (ctx.dashPressed && ctx.canDash) { ctx.StateMachine.SetState(new DashState(ctx)); return; }
+        if (ctx.dashPressed) { ctx.StateMachine.SetState(new DashState(ctx)); return; }
         if (ctx.jumpPressed && ctx.wallSliding) ctx.jumpPressed = false;
     }
 
     public void Tick()
     {
         ctx.LookTick();
+        float dt = Time.deltaTime;
 
-        // wall slide check and gravity
+        // Wall-slide support (if you keep it) chooses gravity
         ctx.wallSliding = ctx.CheckWallSlide(out var _);
         float g = ctx.wallSliding ? ctx.wallSlideGravity : ctx.gravity;
-        ctx.velocity.y += g * Time.deltaTime;
+        ctx.velocity.y += g * dt;
 
-        // horizontal with air control
-        var wish = MovementUtility.CamAlignedWishdir(ctx.cam, ctx.transform, ctx.moveInput) * ctx.moveSpeed;
-        Vector3 flat = new Vector3(ctx.velocity.x, 0, ctx.velocity.z);
-        flat = Vector3.Lerp(flat, wish, ctx.airControl);
-        ctx.velocity.x = flat.x; ctx.velocity.z = flat.z;
 
-        // wall jump
+        Vector3 desiredDirection = MovementUtility.CamAlignedWishdir(ctx.cam, ctx.transform, ctx.moveInput);
+        float desiredSpeed = ctx.EffectiveGroundMoveSpeed;
+
+        MovementQuake.AirAccelerate(ref ctx.velocity, desiredDirection, desiredSpeed, ctx.airAccelQ, ctx.EffectiveAirPerFrameDesiredSpeedCap, dt);
+
+        if (ctx.airControlQ > 0f)
+        {
+            MovementQuake.AirControl(ref ctx.velocity, desiredDirection, desiredSpeed, ctx.airControlQ, dt);
+        }
+        MovementQuake.ClampHorizontalSpeed(ref ctx.velocity, ctx.EffectiveMaxHorizontalSpeed);
+
+        // Wall jump (keep if you like)
         if (ctx.wallSliding && ctx.jumpPressed)
         {
             Vector3 wjLocal = new Vector3(Mathf.Sign(ctx.moveInput.x) >= 0 ? -ctx.wallJumpDir.x : ctx.wallJumpDir.x, ctx.wallJumpDir.y, 0f);
@@ -39,9 +46,14 @@ public class AirborneState : IPlayerState
             ctx.jumpPressed = false;
         }
 
-        if (ctx.characterController.isGrounded) ctx.StateMachine.SetState(new GroundedState(ctx));
-        ctx.characterController.Move(ctx.velocity * Time.deltaTime);
+        if (ctx.characterController.isGrounded)
+        {
+            ctx.StateMachine.SetState(new GroundedState(ctx));
+        }
+
+        ctx.characterController.Move(ctx.velocity * dt);
     }
+
 
     public void FixedTick() { }
 }

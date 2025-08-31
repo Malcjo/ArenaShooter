@@ -34,8 +34,8 @@ public class DashState : IPlayerState
         ctx.LookTick();
 
         t += Time.deltaTime;
-        ctx.velocity.x = dir.x * ctx.dashSpeed;
-        ctx.velocity.z = dir.z * ctx.dashSpeed;
+        ctx.velocity.x = dir.x * ctx.EffectiveDashSpeed;
+        ctx.velocity.z = dir.z * ctx.EffectiveDashSpeed;
         ctx.velocity.y += ctx.gravity * Time.deltaTime;
 
         if (t >= ctx.dashDuration)
@@ -49,9 +49,4 @@ public class DashState : IPlayerState
 
     public void FixedTick() { }
 
-    IEnumerator Cooldown()
-    {
-        yield return new WaitForSeconds(ctx.dashDuration + ctx.dashCooldown);
-        ctx.canDash = true;
-    }
 }

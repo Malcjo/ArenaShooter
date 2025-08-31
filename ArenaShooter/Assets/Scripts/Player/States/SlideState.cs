@@ -32,7 +32,7 @@ public class SlideState : IPlayerState
     {
         ctx.LookTick();
 
-        var wish = MovementUtility.CamAlignedWishdir(ctx.cam, ctx.transform, ctx.moveInput) * ctx.slideSpeed;
+        var wish = MovementUtility.CamAlignedWishdir(ctx.cam, ctx.transform, ctx.moveInput) * ctx.EffectiveSlideSpeed;
         Vector3 flat = new Vector3(ctx.velocity.x, 0, ctx.velocity.z);
         flat = Vector3.MoveTowards(flat, wish, ctx.slideFriction * Time.deltaTime);
         ctx.velocity.x = flat.x; ctx.velocity.z = flat.z;
