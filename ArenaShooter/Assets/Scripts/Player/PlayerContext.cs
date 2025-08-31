@@ -60,6 +60,44 @@ public class PlayerContext : MonoBehaviour
     public float airControlQ = 0f;   // 0..1 (optional extra turning gain in air)
     public bool autoHop = false; // hold jump to auto-bhop
 
+    [Header("Grounding Forgiveness")]
+    [Tooltip("Max vertical distance we will 'snap up' onto a ledge when almost on top.")]
+    public float ledgeSnapUpDistance = 0.35f;
+
+    [Tooltip("How far ahead of feet we probe when checking for a ledge.")]
+    public float ledgeSnapProbeForward = 0.30f;
+
+    [Tooltip("Probe radius for the ledge check (keep <= CharacterController.radius).")]
+    public float ledgeSnapProbeRadius = 0.20f;
+
+    [Tooltip("Layers considered 'walkable ground' for ledge snap.")]
+    public LayerMask groundMask = ~0; // set in Inspector
+
+    [Tooltip("Extra forgiveness for jumping after leaving ground.")]
+    public float coyoteTime = 0.10f; // optional
+
+    [HideInInspector] public float coyoteTimer; // runtime
+
+    [Header("Ledge Snap Gating")]
+    [Tooltip("Master switch for ledge snap. Turn off to test.")]
+    public bool enableLedgeSnap = true;
+
+    [Tooltip("Time window after leaving ground when ledge snap is allowed.")]
+    public float ledgeSnapActiveWindow = 0.25f;
+
+    [Tooltip("Min forward horizontal speed to consider snapping.")]
+    public float ledgeSnapMinForwardSpeed = 1.0f;
+
+    [Tooltip("Min alignment with forward (0..1). 0.35 ~ roughly facing forward.")]
+    [Range(0f, 1f)] public float ledgeSnapMinForwardDot = 0.35f;
+
+    [Tooltip("Debug draw snap probes in Scene view.")]
+    public bool ledgeSnapDebugDraw = false;
+
+    [HideInInspector] public float ledgeSnapTimer;   // counts down in air
+    [HideInInspector] public bool ledgeSnapConsumed; // avoid multiple snaps per airtime
+
+
 
     // === Roguelike Speed Modifiers ===
     // Global affects ALL movement-related speeds.
@@ -123,6 +161,8 @@ public class PlayerContext : MonoBehaviour
            * (1f + airPerFrameDesiredSpeedCapPercentIncrease)
            * GlobalMovementFactor;
 
+
+
     // Runtime
     [HideInInspector] public Vector2 moveInput, lookInput;
     [HideInInspector] public bool jumpPressed, dashPressed, slidePressed, fireHeld, weaponWheelHeld, interactPressed;
@@ -176,6 +216,80 @@ public class PlayerContext : MonoBehaviour
         if (Physics.Raycast(transform.position, -transform.right, out hit, wallCheckDistance, wallMask)) return true;
         return false;
     }
+
+    /// <summary>
+    /// If we are descending and very close to a flat, walkable top surface
+    /// slightly ahead of our feet, snap the controller upward onto it.
+    /// Returns true if we snapped.
+    /// </summary>
+    public bool TryLedgeSnapUp()
+    {
+        if (!enableLedgeSnap) return false;
+        if (characterController.isGrounded) return false;    // only in air
+        if (velocity.y > 0f) return false;                   // only while falling
+        if (ledgeSnapConsumed) return false;                 // one snap per airtime
+        if (ledgeSnapTimer <= 0f) return false;              // only shortly after leaving ground
+
+        // Need forward intent
+        Vector3 flatVel = new Vector3(velocity.x, 0f, velocity.z);
+        float horizSpeed = flatVel.magnitude;
+        if (horizSpeed < ledgeSnapMinForwardSpeed) return false;
+
+        Vector3 fwd = transform.forward;
+        float forwardDot = horizSpeed > 0f ? Vector3.Dot(flatVel.normalized, fwd) : 0f;
+        if (forwardDot < ledgeSnapMinForwardDot) return false;
+
+        // Feet position
+        var cc = characterController;
+        float footY = transform.position.y + cc.center.y - (cc.height * 0.5f);
+
+        // 1) Quick check: something in front to act as a ledge face
+        Vector3 frontProbeOrigin = new Vector3(transform.position.x, footY + 0.1f, transform.position.z);
+        float frontDistance = ledgeSnapProbeForward + ledgeSnapProbeRadius + 0.05f;
+        if (!Physics.SphereCast(frontProbeOrigin, ledgeSnapProbeRadius, fwd, out RaycastHit frontHit, frontDistance, groundMask, QueryTriggerInteraction.Ignore))
+            return false;
+
+        // 2) Downward probe slightly ahead & above feet to find a walkable top
+        Vector3 downOrigin =
+            new Vector3(transform.position.x, footY + ledgeSnapUpDistance, transform.position.z) +
+            fwd * ledgeSnapProbeForward;
+
+        float castDist = ledgeSnapUpDistance + 0.05f;
+        if (Physics.SphereCast(downOrigin, ledgeSnapProbeRadius, Vector3.down,
+                               out RaycastHit topHit, castDist, groundMask, QueryTriggerInteraction.Ignore))
+        {
+            // Flat enough?
+            if (Vector3.Angle(topHit.normal, Vector3.up) <= cc.slopeLimit + 0.1f)
+            {
+                float targetFootY = topHit.point.y + cc.skinWidth + 0.001f;
+                float deltaY = targetFootY - footY;
+                if (deltaY > 0f && deltaY <= ledgeSnapUpDistance)
+                {
+                    // Move up and kill downward velocity
+                    cc.Move(new Vector3(0f, deltaY, 0f));
+                    if (velocity.y < 0f) velocity.y = 0f;
+                    ledgeSnapConsumed = true;
+
+                    if (ledgeSnapDebugDraw)
+                    {
+                        Debug.DrawLine(downOrigin, downOrigin + Vector3.down * castDist, Color.green, 0.1f);
+                        Debug.DrawLine(frontProbeOrigin, frontProbeOrigin + fwd * frontDistance, Color.cyan, 0.1f);
+                    }
+                    return true;
+                }
+            }
+        }
+
+        if (ledgeSnapDebugDraw)
+        {
+            Debug.DrawLine(downOrigin, downOrigin + Vector3.down * castDist, Color.red, 0.1f);
+            Debug.DrawLine(frontProbeOrigin, frontProbeOrigin + fwd * frontDistance, Color.magenta, 0.1f);
+        }
+        return false;
+    }
+
+
+
 
     public bool CanPressDash()
     {

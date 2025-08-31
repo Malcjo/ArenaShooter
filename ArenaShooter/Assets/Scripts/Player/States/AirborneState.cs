@@ -20,10 +20,20 @@ public class AirborneState : IPlayerState
         ctx.LookTick();
         float dt = Time.deltaTime;
 
+
+
         // Wall-slide support (if you keep it) chooses gravity
         ctx.wallSliding = ctx.CheckWallSlide(out var _);
         float g = ctx.wallSliding ? ctx.wallSlideGravity : ctx.gravity;
         ctx.velocity.y += g * dt;
+
+        // --- ledge snap: try before applying our Move ---
+        if (ctx.coyoteTimer > 0f) ctx.coyoteTimer -= dt;
+        if (ctx.ledgeSnapTimer > 0f) ctx.ledgeSnapTimer -= dt;
+
+        // TryLedgeSnapUp() stays exactly where you have it — before Move:
+        bool snapped = ctx.TryLedgeSnapUp();
+
 
 
         Vector3 desiredDirection = MovementUtility.CamAlignedWishdir(ctx.cam, ctx.transform, ctx.moveInput);
@@ -44,6 +54,14 @@ public class AirborneState : IPlayerState
             Vector3 wj = ctx.transform.TransformDirection(wjLocal.normalized);
             ctx.velocity = new Vector3(wj.x * ctx.moveSpeed, ctx.wallJumpForce, wj.z * ctx.moveSpeed);
             ctx.jumpPressed = false;
+        }
+
+        // Coyote jump: allow a grounded-style jump for a short window after leaving ground
+        if (ctx.coyoteTimer > 0f && ctx.jumpPressed)
+        {
+            ctx.velocity.y = ctx.jumpForce;
+            ctx.jumpPressed = false;
+            ctx.coyoteTimer = 0f; // consume the grace
         }
 
         if (ctx.characterController.isGrounded)

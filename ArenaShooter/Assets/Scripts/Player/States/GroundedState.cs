@@ -5,8 +5,19 @@ public class GroundedState : IPlayerState
     PlayerContext ctx;
     public GroundedState(PlayerContext c) { ctx = c; }
 
-    public void Enter() { if (ctx.velocity.y < 0) ctx.velocity.y = -2f; }
-    public void Exit() { }
+    public void Enter() 
+    {
+
+        ctx.coyoteTimer = ctx.coyoteTime;   // keep jump forgiving after step-off
+        ctx.ledgeSnapConsumed = false;      // allow snap again next airtime
+
+        if (ctx.velocity.y < 0) ctx.velocity.y = -2f; 
+    }
+    public void Exit() 
+    {
+
+        ctx.ledgeSnapTimer = ctx.ledgeSnapActiveWindow;
+    }
 
     public void HandleInput()
     {
@@ -24,6 +35,9 @@ public class GroundedState : IPlayerState
     public void Tick()
     {
         ctx.LookTick();
+
+
+
         float dt = Time.deltaTime;
 
         bool wantJump = ctx.jumpPressed || (ctx.autoHop && ctx.jumpHeld);
