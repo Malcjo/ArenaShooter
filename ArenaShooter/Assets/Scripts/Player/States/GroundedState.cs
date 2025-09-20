@@ -35,12 +35,12 @@ public class GroundedState : IPlayerState
     public void Tick()
     {
         ctx.LookTick();
-
-
-
         float dt = Time.deltaTime;
+        
+        if (ctx.jumpBufferTimer > 0f) ctx.jumpBufferTimer -= dt;
 
-        bool wantJump = ctx.jumpPressed || (ctx.autoHop && ctx.jumpHeld);
+        bool bufferedJump = ctx.jumpBufferTimer > 0f;
+        bool wantJump = ctx.jumpPressed || bufferedJump || (ctx.autoHop && ctx.jumpHeld);
 
         Vector3 desiredDirection = MovementUtility.CamAlignedWishdir(ctx.cam, ctx.transform, ctx.moveInput);
         float desiredSpeed = ctx.EffectiveGroundMoveSpeed;
@@ -56,16 +56,20 @@ public class GroundedState : IPlayerState
         if (wantJump)
         {
             ctx.velocity.y = ctx.jumpForce;
-            ctx.jumpPressed = false;
+            ctx.jumpPressed = false;      // consume edge
+            ctx.jumpBufferTimer = 0f;     // consume buffer
+            ctx.coyoteTimer = 0f;         // no double-consume
             ctx.StateMachine.SetState(new AirborneState(ctx));
+            // early return; the rest of Tick will run in the new state next frame
         }
         else
         {
             if (ctx.velocity.y < -2f) ctx.velocity.y = -2f;
             if (!ctx.characterController.isGrounded) ctx.StateMachine.SetState(new AirborneState(ctx));
         }
-
+        //ctx.coyoteTimer = ctx.coyoteTime; not sure if this is right here?
         ctx.characterController.Move(ctx.velocity * dt);
+
     }
 
 

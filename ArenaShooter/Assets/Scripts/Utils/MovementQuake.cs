@@ -47,6 +47,8 @@ public static class MovementQuake
     // Optional "air control" (extra turning when moving generally forward)
     public static void AirControl(ref Vector3 velocity, Vector3 desiredDirection, float wishspeed, float airControl, float deltaTime)
     {
+        
+
         if (airControl <= 0f || wishspeed <= 0f) return;
 
         float originalY = velocity.y; 
@@ -61,6 +63,31 @@ public static class MovementQuake
         
         velocity += desiredDirection * turnStrength * horizontalSpeed;
         velocity = velocity.normalized * horizontalSpeed;
+        velocity.y = originalY;
+    }
+
+    public static void ReorientVelocityPreserveSpeed(ref Vector3 velocity, Vector3 desiredDirection, float maxRadiansToRotate)
+    {
+        if (maxRadiansToRotate <= 0f) return;
+
+        // Work in XZ
+        float originalY = velocity.y;
+        Vector3 flatVelocity = new Vector3(velocity.x, 0f, velocity.z);
+        float horizontalSpeed = flatVelocity.magnitude;
+        if (horizontalSpeed < 1e-4f) return;
+
+        // Normalize desired direction (so input magnitude doesn't skew rotation)
+        Vector3 dir = desiredDirection.sqrMagnitude > 0f ? desiredDirection.normalized : Vector3.zero;
+        if (dir.sqrMagnitude < 1e-6f) return;
+
+        // Target vector has same magnitude, new direction
+        Vector3 targetFlat = dir * horizontalSpeed;
+
+        // Rotate toward target by a limited angle (no magnitude change)
+        flatVelocity = Vector3.RotateTowards(flatVelocity, targetFlat, maxRadiansToRotate, 0f);
+
+        velocity.x = flatVelocity.x;
+        velocity.z = flatVelocity.z;
         velocity.y = originalY;
     }
 

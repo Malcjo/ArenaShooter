@@ -31,6 +31,9 @@ public class AirborneState : IPlayerState
         if (ctx.coyoteTimer > 0f) ctx.coyoteTimer -= dt;
         if (ctx.ledgeSnapTimer > 0f) ctx.ledgeSnapTimer -= dt;
 
+        //decrement jump buffer timer
+        if (ctx.jumpBufferTimer > 0f) ctx.jumpBufferTimer -= dt;
+
         // TryLedgeSnapUp() stays exactly where you have it — before Move:
         bool snapped = ctx.TryLedgeSnapUp();
 
