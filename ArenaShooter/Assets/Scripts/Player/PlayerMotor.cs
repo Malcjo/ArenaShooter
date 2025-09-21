@@ -10,6 +10,9 @@ public class PlayerMotor : MonoBehaviour
     private Vector3 _velocity;
     public Vector3 Velocity => _velocity;
 
+
+
+
     public void SetHorizontal(Vector3 xz) { _velocity.x = xz.x; _velocity.z = xz.z; }
     public void AddVertical(float y) { _velocity.y += y; }
     public void SetVertical(float y) { _velocity.y = y; }

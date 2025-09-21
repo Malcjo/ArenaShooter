@@ -20,6 +20,8 @@ public class PlayerSensors : MonoBehaviour
     public float LedgeSnapTimer { get; private set; }
     public bool LedgeSnapConsumed { get; private set; }
 
+    void Awake() { if (!cc) cc = GetComponent<CharacterController>(); }
+
     public void OnGroundedEnter()
     {
         CoyoteTimer = coyoteTime;

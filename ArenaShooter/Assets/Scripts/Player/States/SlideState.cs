@@ -1,59 +1,57 @@
 using UnityEngine;
-using System.Collections;
 
 public class SlideState : IPlayerState
 {
-    PlayerContext ctx;
-    float t;
+    private readonly PlayerContext ctx;
+    private float _timer;
 
     public SlideState(PlayerContext c) { ctx = c; }
 
     public void Enter()
     {
-        ctx.slidePressed = false;
-        ctx.canSlide = false;
-        ctx.characterController.height = ctx.crouchHeight;
-        t = 0f;
-        ctx.StartCoroutine(EnableSlideSoon());
+        _timer = 0f;
+
+        // shrink controller to crouch height
+        ctx.motor.SetVertical(Mathf.Min(0f, ctx.motor.Velocity.y));
+        ctx.characterController.height = ctx.stats.CrouchHeight;
+
+        var center = ctx.characterController.center;
+        center.y = ctx.stats.CrouchHeight * 0.5f;
+        ctx.characterController.center = center;
     }
 
-    public void Exit() { ctx.characterController.height = ctx.normalHeight; }
+    public void Exit()
+    {
+        ctx.characterController.height = ctx.normalHeight;
+        var center = ctx.characterController.center;
+        center.y = ctx.normalHeight * 0.5f;
+        ctx.characterController.center = center;
+    }
 
     public void HandleInput()
     {
-        if (ctx.jumpPressed)
-        {
-            ctx.jumpPressed = false;
-            ctx.StateMachine.SetState(new AirborneState(ctx));
-        }
+        if (ctx.input.Frame.WeaponWheelHeld) { ctx.fsm.SetState(new WeaponWheelState(ctx)); return; }
+        if (ctx.input.Frame.DashPressedEdge) { ctx.input.ConsumeDash(); ctx.fsm.SetState(new DashState(ctx)); return; }
     }
 
     public void Tick()
     {
-        ctx.LookTick();
+        float dt = Time.deltaTime;
+        _timer += dt;
 
-        var wish = MovementUtility.CamAlignedWishdir(ctx.cam, ctx.transform, ctx.moveInput) * ctx.EffectiveSlideSpeed;
-        Vector3 flat = new Vector3(ctx.velocity.x, 0, ctx.velocity.z);
-        flat = Vector3.MoveTowards(flat, wish, ctx.slideFriction * Time.deltaTime);
-        ctx.velocity.x = flat.x; ctx.velocity.z = flat.z;
+        Vector3 wish = MovementUtility.CamAlignedWishdir(ctx.cam, ctx.transform, ctx.input.Frame.Move);
+        ctx.motor.SlideStep(wish, ctx.stats.EffectiveSlideSpeed, ctx.stats.SlideFrictionEffective, dt);
+        ctx.motor.AddVertical(ctx.stats.Gravity * dt);
 
-        if (!ctx.characterController.isGrounded) { ctx.StateMachine.SetState(new AirborneState(ctx)); return; }
+        bool timeUp = _timer >= ctx.stats.SlideDuration;
+        bool leftGround = !ctx.characterController.isGrounded;
 
-        t += Time.deltaTime;
-        if (t >= ctx.slideDuration || ctx.moveInput.sqrMagnitude < 0.05f)
+        if (timeUp || leftGround)
         {
-            ctx.StateMachine.SetState(new GroundedState(ctx));
-            return;
+            if (ctx.characterController.isGrounded) ctx.fsm.SetState(new GroundedState(ctx));
+            else ctx.fsm.SetState(new AirborneState(ctx));
         }
-
-        ctx.characterController.Move(ctx.velocity * Time.deltaTime);
     }
 
     public void FixedTick() { }
-
-    IEnumerator EnableSlideSoon()
-    {
-        yield return new WaitForSeconds(0.35f);
-        ctx.canSlide = true;
-    }
 }

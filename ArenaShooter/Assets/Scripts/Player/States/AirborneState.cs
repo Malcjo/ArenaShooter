@@ -2,7 +2,7 @@ using UnityEngine;
 
 public class AirborneState : IPlayerState
 {
-    PlayerContext ctx;
+    private readonly PlayerContext ctx;
     public AirborneState(PlayerContext c) { ctx = c; }
 
     public void Enter() { }
@@ -10,71 +10,37 @@ public class AirborneState : IPlayerState
 
     public void HandleInput()
     {
-        if (ctx.weaponWheelHeld) { ctx.StateMachine.SetState(new WeaponWheelState(ctx)); return; }
-        if (ctx.dashPressed) { ctx.StateMachine.SetState(new DashState(ctx)); return; }
-        if (ctx.jumpPressed && ctx.wallSliding) ctx.jumpPressed = false;
+        var f = ctx.input.Frame;
+
+        if (f.WeaponWheelHeld) { ctx.fsm.SetState(new WeaponWheelState(ctx)); return; }
+        if (f.DashPressedEdge) { ctx.input.ConsumeDash(); ctx.fsm.SetState(new DashState(ctx)); return; }
     }
 
     public void Tick()
     {
-        ctx.LookTick();
         float dt = Time.deltaTime;
+        ctx.sensors.TickTimers(dt);
 
+        // Look
+        ctx.motor.LookTick(ctx.cam, ctx.input.Frame.Look, ctx.UsingGamepad, ref ctx.yaw);
 
+        // ledge snap forgiveness (does a small upward CC.Move if valid)
+        ctx.sensors.TryLedgeSnap(ctx.transform.position, ctx.motor.Velocity, ctx.transform);
 
-        // Wall-slide support (if you keep it) chooses gravity
-        ctx.wallSliding = ctx.CheckWallSlide(out var _);
-        float g = ctx.wallSliding ? ctx.wallSlideGravity : ctx.gravity;
-        ctx.velocity.y += g * dt;
+        // air move
+        Vector3 wish = MovementUtility.CamAlignedWishdir(ctx.cam, ctx.transform, ctx.input.Frame.Move);
+        ctx.motor.AirStep(wish, dt, useReorient: true);
 
-        // --- ledge snap: try before applying our Move ---
-        if (ctx.coyoteTimer > 0f) ctx.coyoteTimer -= dt;
-        if (ctx.ledgeSnapTimer > 0f) ctx.ledgeSnapTimer -= dt;
-
-        //decrement jump buffer timer
-        if (ctx.jumpBufferTimer > 0f) ctx.jumpBufferTimer -= dt;
-
-        // TryLedgeSnapUp() stays exactly where you have it — before Move:
-        bool snapped = ctx.TryLedgeSnapUp();
-
-
-
-        Vector3 desiredDirection = MovementUtility.CamAlignedWishdir(ctx.cam, ctx.transform, ctx.moveInput);
-        float desiredSpeed = ctx.EffectiveGroundMoveSpeed;
-
-        MovementQuake.AirAccelerate(ref ctx.velocity, desiredDirection, desiredSpeed, ctx.airAccelQ, ctx.EffectiveAirPerFrameDesiredSpeedCap, dt);
-
-        if (ctx.airControlQ > 0f)
+        // coyote jump
+        if (ctx.sensors.CoyoteTimer > 0f && ctx.input.Frame.JumpPressedEdge)
         {
-            MovementQuake.AirControl(ref ctx.velocity, desiredDirection, desiredSpeed, ctx.airControlQ, dt);
-        }
-        MovementQuake.ClampHorizontalSpeed(ref ctx.velocity, ctx.EffectiveMaxHorizontalSpeed);
-
-        // Wall jump (keep if you like)
-        if (ctx.wallSliding && ctx.jumpPressed)
-        {
-            Vector3 wjLocal = new Vector3(Mathf.Sign(ctx.moveInput.x) >= 0 ? -ctx.wallJumpDir.x : ctx.wallJumpDir.x, ctx.wallJumpDir.y, 0f);
-            Vector3 wj = ctx.transform.TransformDirection(wjLocal.normalized);
-            ctx.velocity = new Vector3(wj.x * ctx.moveSpeed, ctx.wallJumpForce, wj.z * ctx.moveSpeed);
-            ctx.jumpPressed = false;
+            ctx.motor.SetVertical(ctx.stats.JumpForce);
+            ctx.input.ConsumeJump();
         }
 
-        // Coyote jump: allow a grounded-style jump for a short window after leaving ground
-        if (ctx.coyoteTimer > 0f && ctx.jumpPressed)
-        {
-            ctx.velocity.y = ctx.jumpForce;
-            ctx.jumpPressed = false;
-            ctx.coyoteTimer = 0f; // consume the grace
-        }
-
-        if (ctx.characterController.isGrounded)
-        {
-            ctx.StateMachine.SetState(new GroundedState(ctx));
-        }
-
-        ctx.characterController.Move(ctx.velocity * dt);
+        // land
+        if (ctx.characterController.isGrounded) ctx.fsm.SetState(new GroundedState(ctx));
     }
-
 
     public void FixedTick() { }
 }

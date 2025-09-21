@@ -1,77 +1,57 @@
+using TMPro;
 using UnityEngine;
 
 public class GroundedState : IPlayerState
 {
-    PlayerContext ctx;
+    private readonly PlayerContext ctx;
+    private bool _autoHopQueued;
+
     public GroundedState(PlayerContext c) { ctx = c; }
 
-    public void Enter() 
+    public void Enter()
     {
-
-        ctx.coyoteTimer = ctx.coyoteTime;   // keep jump forgiving after step-off
-        ctx.ledgeSnapConsumed = false;      // allow snap again next airtime
-
-        if (ctx.velocity.y < 0) ctx.velocity.y = -2f; 
+        ctx.sensors.OnGroundedEnter();
+        // queue auto-hop once on landing (fires next Tick if still held)
+        _autoHopQueued = ctx.stats.AutoHop && ctx.input.Frame.JumpHeld;
     }
-    public void Exit() 
-    {
 
-        ctx.ledgeSnapTimer = ctx.ledgeSnapActiveWindow;
+    public void Exit()
+    {
+        ctx.sensors.OnGroundedExit();
     }
 
     public void HandleInput()
     {
-        if (ctx.weaponWheelHeld) { ctx.StateMachine.SetState(new WeaponWheelState(ctx)); return; }
-        if (ctx.dashPressed) { ctx.StateMachine.SetState(new DashState(ctx)); return; }
-        if (ctx.slidePressed && ctx.canSlide && ctx.moveInput.sqrMagnitude > 0.2f) { ctx.StateMachine.SetState(new SlideState(ctx)); return; }
-        if (ctx.jumpPressed)
-        {
-            ctx.velocity.y = ctx.jumpForce;
-            ctx.jumpPressed = false;
-            ctx.StateMachine.SetState(new AirborneState(ctx));
-        }
+        var f = ctx.input.Frame;
+
+        if (f.WeaponWheelHeld) { ctx.fsm.SetState(new WeaponWheelState(ctx)); return; }
+        if (f.DashPressedEdge) { ctx.input.ConsumeDash(); ctx.fsm.SetState(new DashState(ctx)); return; }
+        if (f.SlidePressedEdge && f.Move.sqrMagnitude > 0.2f) { ctx.fsm.SetState(new SlideState(ctx)); return; }
     }
 
     public void Tick()
     {
-        ctx.LookTick();
         float dt = Time.deltaTime;
-        
-        if (ctx.jumpBufferTimer > 0f) ctx.jumpBufferTimer -= dt;
+        ctx.sensors.TickTimers(dt);
 
-        bool bufferedJump = ctx.jumpBufferTimer > 0f;
-        bool wantJump = ctx.jumpPressed || bufferedJump || (ctx.autoHop && ctx.jumpHeld);
+        // Look
+        ctx.motor.LookTick(ctx.cam, ctx.input.Frame.Look, ctx.UsingGamepad, ref ctx.yaw);
 
-        Vector3 desiredDirection = MovementUtility.CamAlignedWishdir(ctx.cam, ctx.transform, ctx.moveInput);
-        float desiredSpeed = ctx.EffectiveGroundMoveSpeed;
-
-        // Skip one friction tick if we’re jumping this frame (bhop feel)
-        if (!wantJump)
-        {
-            MovementQuake.ApplyFriction(ref ctx.velocity, ctx.groundFriction, ctx.groundStopSpeed, dt);
-        }
-        MovementQuake.Accelerate(ref ctx.velocity, desiredDirection, desiredSpeed, ctx.groundAccelQ, dt);
-        MovementQuake.ClampHorizontalSpeed(ref ctx.velocity, ctx.EffectiveMaxHorizontalSpeed);
-
+        // jump intent (edge or one-shot auto-hop)
+        bool wantJump = ctx.input.Frame.JumpPressedEdge || _autoHopQueued;
         if (wantJump)
         {
-            ctx.velocity.y = ctx.jumpForce;
-            ctx.jumpPressed = false;      // consume edge
-            ctx.jumpBufferTimer = 0f;     // consume buffer
-            ctx.coyoteTimer = 0f;         // no double-consume
-            ctx.StateMachine.SetState(new AirborneState(ctx));
-            // early return; the rest of Tick will run in the new state next frame
+            _autoHopQueued = false;   // consume queued auto-hop
+            ctx.input.ConsumeJump();  // consume any buffered/edge press
         }
-        else
-        {
-            if (ctx.velocity.y < -2f) ctx.velocity.y = -2f;
-            if (!ctx.characterController.isGrounded) ctx.StateMachine.SetState(new AirborneState(ctx));
-        }
-        //ctx.coyoteTimer = ctx.coyoteTime; not sure if this is right here?
-        ctx.characterController.Move(ctx.velocity * dt);
 
+        // move
+        Vector3 wish = MovementUtility.CamAlignedWishdir(ctx.cam, ctx.transform, ctx.input.Frame.Move);
+        ctx.motor.GroundStep(wish, wantJump, dt);
+
+        // state change
+        if (!ctx.characterController.isGrounded) ctx.fsm.SetState(new AirborneState(ctx));
     }
-
 
     public void FixedTick() { }
 }

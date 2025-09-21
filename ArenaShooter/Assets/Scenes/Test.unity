@@ -3399,10 +3399,15 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 792430086}
+  - component: {fileID: 792430089}
   - component: {fileID: 792430085}
-  - component: {fileID: 792430084}
   - component: {fileID: 792430083}
+  - component: {fileID: 792430084}
+  - component: {fileID: 792430091}
+  - component: {fileID: 792430090}
   - component: {fileID: 792430082}
+  - component: {fileID: 792430088}
+  - component: {fileID: 792430087}
   m_Layer: 0
   m_Name: Player
   m_TagString: Untagged
@@ -3423,74 +3428,16 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   cam: {fileID: 277484694}
+  fsm: {fileID: 0}
   characterController: {fileID: 0}
-  StateMachine: {fileID: 0}
   playerInput: {fileID: 0}
-  moveSpeed: 10
-  jumpForce: 8
-  gravity: -18
-  airControl: 0.6
-  dashSpeed: 22
-  dashDuration: 0.18
-  dashCooldown: 0.3
-  maxDashCharges: 1
-  dashCharges: 0
-  dashRefillCooldown: 0.9
-  groundedRequiredForRefill: 1
-  isDashing: 0
-  slideSpeed: 12
-  slideDuration: 0.5
-  slideFriction: 8
+  input: {fileID: 0}
+  sensors: {fileID: 0}
+  stats: {fileID: 0}
+  motor: {fileID: 0}
   crouchHeight: 1
   normalHeight: 0
-  wallCheckDistance: 0.6
-  wallMask:
-    serializedVersion: 2
-    m_Bits: 64
-  wallSlideGravity: -4
-  wallJumpForce: 9
-  wallJumpDir: {x: 0.8, y: 0.6}
-  mouseSensitivity: 0.08
-  stickSensitivity: 120
-  useAcceleration: 1
-  groundAccel: 60
-  airAccel: 30
-  groundSnapLerp: 1
-  useQuakeMovement: 1
-  maxHorizSpeed: 14
-  groundFriction: 6
-  groundStopSpeed: 1
-  groundAccelQ: 14
-  airAccelQ: 8
-  airMaxSpeed: 14
-  airControlQ: 0.2
-  autoHop: 0
-  globalMovementFlatBonus: 0
-  globalMovementPercentIncrease: 0
-  globalMovementMultiplier: 1
-  groundMoveSpeedFlatBonus: 0
-  groundMoveSpeedPercentIncrease: 0
-  airPerFrameDesiredSpeedCapFlatBonus: 0
-  airPerFrameDesiredSpeedCapPercentIncrease: 0
-  dashSpeedFlatBonus: 0
-  dashSpeedPercentIncrease: 0
-  slideSpeedFlatBonus: 0
-  slideSpeedPercentIncrease: 0
-  maxHorizontalSpeedFlatBonus: 0
-  maxHorizontalSpeedPercentIncrease: 0
-  moveInput: {x: 0, y: 0}
-  lookInput: {x: 0, y: 0}
-  jumpPressed: 0
-  dashPressed: 0
-  slidePressed: 0
-  fireHeld: 0
-  weaponWheelHeld: 0
-  interactPressed: 0
-  velocity: {x: 0, y: 0, z: 0}
-  canDash: 1
-  canSlide: 1
-  wallSliding: 0
-  jumpHeld: 0
+  yaw: 0
 --- !u!114 &792430083
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -3530,8 +3477,8 @@ MonoBehaviour:
   m_ActionEvents:
   - m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 792430082}
-        m_TargetAssemblyTypeName: PlayerContext, Assembly-CSharp
+      - m_Target: {fileID: 792430089}
+        m_TargetAssemblyTypeName: InputBuffer, Assembly-CSharp
         m_MethodName: OnMove
         m_Mode: 0
         m_Arguments:
@@ -3546,8 +3493,8 @@ MonoBehaviour:
     m_ActionName: Gameplay/Move[/Keyboard/w,/Keyboard/s,/Keyboard/a,/Keyboard/d]
   - m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 792430082}
-        m_TargetAssemblyTypeName: PlayerContext, Assembly-CSharp
+      - m_Target: {fileID: 792430089}
+        m_TargetAssemblyTypeName: InputBuffer, Assembly-CSharp
         m_MethodName: OnLook
         m_Mode: 0
         m_Arguments:
@@ -3562,8 +3509,8 @@ MonoBehaviour:
     m_ActionName: Gameplay/Look[/Mouse/delta]
   - m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 792430082}
-        m_TargetAssemblyTypeName: PlayerContext, Assembly-CSharp
+      - m_Target: {fileID: 792430089}
+        m_TargetAssemblyTypeName: InputBuffer, Assembly-CSharp
         m_MethodName: OnJump
         m_Mode: 0
         m_Arguments:
@@ -3578,8 +3525,8 @@ MonoBehaviour:
     m_ActionName: Gameplay/Jump[/Keyboard/space]
   - m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 792430082}
-        m_TargetAssemblyTypeName: PlayerContext, Assembly-CSharp
+      - m_Target: {fileID: 792430089}
+        m_TargetAssemblyTypeName: InputBuffer, Assembly-CSharp
         m_MethodName: OnDash
         m_Mode: 0
         m_Arguments:
@@ -3594,8 +3541,8 @@ MonoBehaviour:
     m_ActionName: Gameplay/Dash[/Keyboard/leftCtrl]
   - m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 792430082}
-        m_TargetAssemblyTypeName: PlayerContext, Assembly-CSharp
+      - m_Target: {fileID: 792430089}
+        m_TargetAssemblyTypeName: InputBuffer, Assembly-CSharp
         m_MethodName: OnSlide
         m_Mode: 0
         m_Arguments:
@@ -3610,8 +3557,8 @@ MonoBehaviour:
     m_ActionName: Gameplay/Slide[/Keyboard/c]
   - m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 792430082}
-        m_TargetAssemblyTypeName: PlayerContext, Assembly-CSharp
+      - m_Target: {fileID: 792430089}
+        m_TargetAssemblyTypeName: InputBuffer, Assembly-CSharp
         m_MethodName: OnFire
         m_Mode: 0
         m_Arguments:
@@ -3626,8 +3573,8 @@ MonoBehaviour:
     m_ActionName: Gameplay/Fire[/Mouse/leftButton]
   - m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 792430082}
-        m_TargetAssemblyTypeName: PlayerContext, Assembly-CSharp
+      - m_Target: {fileID: 792430089}
+        m_TargetAssemblyTypeName: InputBuffer, Assembly-CSharp
         m_MethodName: OnWeaponWheel
         m_Mode: 0
         m_Arguments:
@@ -3642,8 +3589,8 @@ MonoBehaviour:
     m_ActionName: Gameplay/WeaponWheel[/Keyboard/q]
   - m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 792430082}
-        m_TargetAssemblyTypeName: PlayerContext, Assembly-CSharp
+      - m_Target: {fileID: 792430089}
+        m_TargetAssemblyTypeName: InputBuffer, Assembly-CSharp
         m_MethodName: OnInteract
         m_Mode: 0
         m_Arguments:
@@ -3694,6 +3641,104 @@ Transform:
   m_Father: {fileID: 0}
   m_RootOrder: 2
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &792430087
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 792430081}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bfa3fd761405d9e4c828bf2988698908, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  cc: {fileID: 0}
+  sensors: {fileID: 0}
+  stats: {fileID: 0}
+--- !u!114 &792430088
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 792430081}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 81a03ac116c03704dbbd43d79c839020, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  cc: {fileID: 792430085}
+  wallMask:
+    serializedVersion: 2
+    m_Bits: 0
+  groundMask:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  wallCheckDistance: 0.6
+  slopeLimitPadding: 0.1
+  coyoteTime: 0.1
+  ledgeSnapUpDistance: 0.35
+  ledgeSnapProbeForward: 0.3
+  ledgeSnapProbeRadius: 0.2
+  enableLedgeSnap: 1
+  ledgeSnapActiveWindow: 0.25
+  ledgeSnapMinForwardSpeed: 1
+  ledgeSnapMinForwardDot: 0.35
+--- !u!114 &792430089
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 792430081}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ca678bcd26d253d409fd42498f0a2dd8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  jumpBufferTime: 0.1
+  dashBufferTime: 0
+--- !u!114 &792430090
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 792430081}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 32d611f51e89bc642b068ce64b3e603f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  baseStats: {fileID: 11400000, guid: b16b36330fa272c4693141442947b158, type: 2}
+  globalFlatBonus: 0
+  globalPercentIncrease: 0
+  globalMultiplier: 1
+  groundPercentIncrease: 0
+  dashPercentIncrease: 0
+  slidePercentIncrease: 0
+  maxHorizPercentIncrease: 0
+  airPerFramePercentIncrease: 0
+  slideFrictionFlatBonus: 0
+  slideFrictionPercentIncrease: 0
+  maxDashCharges: 2
+  dashRefillCooldown: 0.9
+  groundedRequiredForDashRefill: 1
+--- !u!114 &792430091
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 792430081}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ca678bcd26d253d409fd42498f0a2dd8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  jumpBufferTime: 0.1
+  dashBufferTime: 0
 --- !u!43 &814628424
 Mesh:
   m_ObjectHideFlags: 0

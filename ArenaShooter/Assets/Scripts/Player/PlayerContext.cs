@@ -1,28 +1,68 @@
 using UnityEngine.InputSystem;
 using UnityEngine;
+using System;
+
+[RequireComponent(typeof(CharacterController))]
+[RequireComponent(typeof(PlayerStateMachine))]
+[RequireComponent(typeof(PlayerInput))]
+[RequireComponent(typeof(InputBuffer))]
+[RequireComponent(typeof(PlayerSensors))]
+[RequireComponent(typeof(PlayerStats))]
+[RequireComponent(typeof(PlayerMotor))]
 
 public class PlayerContext : MonoBehaviour
 {
     public Camera cam;
-    public PlayerStateMachine fsm;
-    public CharacterController cc;
-    public PlayerInput playerInput;
+    [HideInInspector] public PlayerStateMachine fsm;
+    [HideInInspector] public CharacterController characterController;
+    [HideInInspector] public PlayerInput playerInput;
 
-    public InputBuffer input;
-    public PlayerSensors sensors;
-    public PlayerStats stats;
-    public PlayerMotor motor;
+    [HideInInspector] public InputBuffer input;
+    [HideInInspector] public PlayerSensors sensors;
+    [HideInInspector] public PlayerStats stats;
+    [HideInInspector] public PlayerMotor motor;
+
+
+    public float crouchHeight = 1.0f;
+    [HideInInspector] public float normalHeight;
+    
 
     [HideInInspector] public float yaw;
 
     void Awake()
     {
-        cc = GetComponent<CharacterController>();
-        fsm = GetComponent<PlayerStateMachine>();
-        playerInput = GetComponent<PlayerInput>();
+        characterController = GetComponent<CharacterController>();
+        fsm                 = GetComponent<PlayerStateMachine>();
+        playerInput         = GetComponent<PlayerInput>();
+        Cursor.lockState    = CursorLockMode.Locked;
+        normalHeight        = characterController.height;
+        sensors             = GetComponent<PlayerSensors>();
+        stats               = GetComponent<PlayerStats>();
+        motor               = GetComponent<PlayerMotor>();
+        input               = GetComponent<InputBuffer>();  
+
+        // make sure cross-references are set too
+        if (!motor.cc) motor.cc = characterController;
+        if (!motor.sensors) motor.sensors = sensors;
+        if (!motor.stats) motor.stats = stats;
+        if (!sensors.cc) sensors.cc = characterController;
+
+        normalHeight = characterController.height;
         Cursor.lockState = CursorLockMode.Locked;
+
+        // quick sanity logging to help catch missing asset refs
+        if (stats.baseStats == null)
+            Debug.LogError("PlayerStats.baseStats (MovementStats asset) is NOT assigned on the Player.");
+        if (!cam)
+            Debug.LogError("PlayerContext.cam is NOT assigned (drag your child camera).");
     }
-    void Start() { fsm.SetState(new GroundedState(this)); }
+    void Start() 
+    {
+        Debug.Log("call grounded");
+        fsm.SetState(new GroundedState(this));
+        Debug.Log("call grounded after");
+        Debug.Log(playerInput.gameObject);
+    }
     public bool UsingGamepad => playerInput && playerInput.currentControlScheme == "Gamepad";
 }
 
