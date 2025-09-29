@@ -49,6 +49,12 @@ public class PlayerMotor : MonoBehaviour
         if (_velocity.y < -2f) _velocity.y = -2f;
 
         cc.Move(_velocity * dt);
+
+        //After a Move, if you hit something above, kill upward speed so you don’t bob downward on the next frame:
+        if ((cc.collisionFlags & CollisionFlags.Above) != 0)
+        {
+            if (_velocity.y > 0f) _velocity.y = 0f;
+        }
     }
 
     public void AirStep(Vector3 wishDir, float dt, bool useReorient = true)
@@ -61,6 +67,12 @@ public class PlayerMotor : MonoBehaviour
         }
         MovementQuake.ClampHorizontalSpeed(ref _velocity, stats.EffectiveMaxHorizSpeed);
         cc.Move(_velocity * dt);
+
+        //After a Move, if you hit something above, kill upward speed so you don’t bob downward on the next frame:
+        if ((cc.collisionFlags & CollisionFlags.Above) != 0)
+        {
+            if (_velocity.y > 0f) _velocity.y = 0f;
+        }
     }
 
     public void DashBurst(Vector3 dir)

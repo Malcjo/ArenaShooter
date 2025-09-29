@@ -15,6 +15,8 @@ public class SlideState : IPlayerState
         ctx.motor.SetVertical(Mathf.Min(0f, ctx.motor.Velocity.y));
         ctx.characterController.height = ctx.stats.CrouchHeight;
 
+        ctx.characterController.stepOffset = 0f;
+
         var center = ctx.characterController.center;
         center.y = ctx.stats.CrouchHeight * 0.5f;
         ctx.characterController.center = center;
@@ -26,6 +28,7 @@ public class SlideState : IPlayerState
         var center = ctx.characterController.center;
         center.y = ctx.normalHeight * 0.5f;
         ctx.characterController.center = center;
+        if (ctx.characterController.isGrounded) ctx.characterController.stepOffset = 0.3f;
     }
 
     public void HandleInput()

@@ -5,7 +5,9 @@ public class AirborneState : IPlayerState
     private readonly PlayerContext ctx;
     public AirborneState(PlayerContext c) { ctx = c; }
 
-    public void Enter() { }
+    public void Enter() {
+        ctx.characterController.stepOffset = 0f;
+    }
     public void Exit() { }
 
     public void HandleInput()

@@ -47,6 +47,14 @@ public class PlayerSensors : MonoBehaviour
         return false;
     }
 
+    public bool LowOverhangAhead(Transform t, float checkDist = 0.25f)
+    {
+        // approximate top cylinder center at head height
+        float topY = t.position.y + cc.center.y + (cc.height * 0.5f) - cc.radius;
+        Vector3 head = new Vector3(t.position.x, topY, t.position.z);
+        float probeRadius = Mathf.Max(0.01f, cc.radius - cc.skinWidth * 0.5f);
+        return Physics.SphereCast(head, probeRadius, t.forward, out _, checkDist, groundMask, QueryTriggerInteraction.Ignore);
+    }
     public bool TryLedgeSnap(Vector3 position, Vector3 velocity, Transform t)
     {
         if (!enableLedgeSnap || cc.isGrounded || LedgeSnapConsumed) return false;

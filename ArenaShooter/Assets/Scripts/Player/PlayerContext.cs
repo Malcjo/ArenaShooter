@@ -34,12 +34,14 @@ public class PlayerContext : MonoBehaviour
         characterController = GetComponent<CharacterController>();
         fsm                 = GetComponent<PlayerStateMachine>();
         playerInput         = GetComponent<PlayerInput>();
-        Cursor.lockState    = CursorLockMode.Locked;
-        normalHeight        = characterController.height;
+        input               = GetComponent<InputBuffer>();
         sensors             = GetComponent<PlayerSensors>();
         stats               = GetComponent<PlayerStats>();
         motor               = GetComponent<PlayerMotor>();
-        input               = GetComponent<InputBuffer>();  
+
+
+        Cursor.lockState = CursorLockMode.Locked;
+        normalHeight = characterController.height;
 
         // make sure cross-references are set too
         if (!motor.cc) motor.cc = characterController;

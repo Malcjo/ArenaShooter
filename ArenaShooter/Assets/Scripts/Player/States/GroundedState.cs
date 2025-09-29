@@ -11,6 +11,7 @@ public class GroundedState : IPlayerState
     public void Enter()
     {
         ctx.sensors.OnGroundedEnter();
+        ctx.characterController.stepOffset = 0.3f;   // good default
         // queue auto-hop once on landing (fires next Tick if still held)
         _autoHopQueued = ctx.stats.AutoHop && ctx.input.Frame.JumpHeld;
     }
@@ -47,6 +48,12 @@ public class GroundedState : IPlayerState
 
         // move
         Vector3 wish = MovementUtility.CamAlignedWishdir(ctx.cam, ctx.transform, ctx.input.Frame.Move);
+        if (ctx.sensors.LowOverhangAhead(ctx.transform))
+        {
+            // remove the forward part that pushes into the overhang
+            Vector3 fwd = ctx.transform.forward;
+            wish -= Vector3.Project(wish, fwd);
+        }
         ctx.motor.GroundStep(wish, wantJump, dt);
 
         // state change
