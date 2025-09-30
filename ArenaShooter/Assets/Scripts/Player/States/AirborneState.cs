@@ -14,7 +14,7 @@ public class AirborneState : IPlayerState
     {
         var f = ctx.input.Frame;
 
-        if (f.WeaponWheelHeld) { ctx.fsm.SetState(new WeaponWheelState(ctx)); return; }
+        
         if (f.DashPressedEdge) { ctx.input.ConsumeDash(); ctx.fsm.SetState(new DashState(ctx)); return; }
     }
 

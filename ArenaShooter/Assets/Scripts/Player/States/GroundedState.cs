@@ -25,7 +25,7 @@ public class GroundedState : IPlayerState
     {
         var f = ctx.input.Frame;
 
-        if (f.WeaponWheelHeld) { ctx.fsm.SetState(new WeaponWheelState(ctx)); return; }
+        
         if (f.DashPressedEdge) { ctx.input.ConsumeDash(); Debug.Log("dash pressed"); ctx.fsm.SetState(new DashState(ctx));  return; }
         if (f.SlidePressedEdge && f.Move.sqrMagnitude > 0.2f) { ctx.fsm.SetState(new SlideState(ctx)); return; }
     }

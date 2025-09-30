@@ -33,7 +33,6 @@ public class SlideState : IPlayerState
 
     public void HandleInput()
     {
-        if (ctx.input.Frame.WeaponWheelHeld) { ctx.fsm.SetState(new WeaponWheelState(ctx)); return; }
         if (ctx.input.Frame.DashPressedEdge) { ctx.input.ConsumeDash(); ctx.fsm.SetState(new DashState(ctx)); return; }
     }
 

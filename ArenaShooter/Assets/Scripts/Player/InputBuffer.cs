@@ -7,8 +7,8 @@ public struct InputFrame
     public Vector2 Move; public Vector2 Look;
     public bool JumpPressedEdge; public bool JumpHeld;
     public bool DashPressedEdge; public bool SlidePressedEdge;
-    public bool WeaponWheelHeld; public bool InteractPressedEdge;
-   public bool fireHeld;
+    public bool InteractPressedEdge;
+    public bool fireHeld;
 
 }
 
@@ -45,7 +45,6 @@ public class InputBuffer : MonoBehaviour
         } 
     }
     public void OnSlide(InputAction.CallbackContext ctx) { if (ctx.performed) Frame.SlidePressedEdge = true; }
-    public void OnWeaponWheel(InputAction.CallbackContext ctx) { Frame.WeaponWheelHeld = ctx.phase == InputActionPhase.Performed; }
     public void OnInteract(InputAction.CallbackContext ctx) { if (ctx.performed) Frame.InteractPressedEdge = true; }
     // held or tap — choose what you want:
     public void OnFire(InputAction.CallbackContext ctx) { Frame.fireHeld = ctx.phase == InputActionPhase.Performed;}

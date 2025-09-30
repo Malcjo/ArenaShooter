@@ -60,15 +60,6 @@
                     "initialStateCheck": false
                 },
                 {
-                    "name": "WeaponWheel",
-                    "type": "Button",
-                    "id": "47b5d7b1-c3c6-4da8-b02f-8f5e0822dc90",
-                    "expectedControlType": "Button",
-                    "processors": "",
-                    "interactions": "Hold(duration=0.2)",
-                    "initialStateCheck": false
-                },
-                {
                     "name": "Interact",
                     "type": "Button",
                     "id": "37697cd0-069b-4842-abcf-151ba16bffdf",
@@ -252,28 +243,6 @@
                     "processors": "",
                     "groups": "Gamepad",
                     "action": "Fire",
-                    "isComposite": false,
-                    "isPartOfComposite": false
-                },
-                {
-                    "name": "",
-                    "id": "fd2120e9-505e-41ea-bd3b-6087112d99bd",
-                    "path": "<Keyboard>/q",
-                    "interactions": "",
-                    "processors": "",
-                    "groups": "Keyboard&Mouse",
-                    "action": "WeaponWheel",
-                    "isComposite": false,
-                    "isPartOfComposite": false
-                },
-                {
-                    "name": "",
-                    "id": "09efdb38-b41d-461d-9255-65ddebce4739",
-                    "path": "<Gamepad>/buttonNorth",
-                    "interactions": "",
-                    "processors": "",
-                    "groups": "Gamepad",
-                    "action": "WeaponWheel",
                     "isComposite": false,
                     "isPartOfComposite": false
                 },

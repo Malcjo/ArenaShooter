@@ -39,7 +39,7 @@ public class DashState : IPlayerState
 
     public void HandleInput()
     {
-        if (ctx.input.Frame.WeaponWheelHeld) { ctx.fsm.SetState(new WeaponWheelState(ctx)); }
+        
     }
 
     public void Tick()
