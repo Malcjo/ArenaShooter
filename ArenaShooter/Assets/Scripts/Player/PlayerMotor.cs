@@ -10,7 +10,7 @@ public class PlayerMotor : MonoBehaviour
     private Vector3 _velocity;
     public Vector3 Velocity => _velocity;
 
-
+    public float airDragPerSecond = 0.8f; // tweak: 0.5–1.5 feels nice
 
 
     public void SetHorizontal(Vector3 xz) { _velocity.x = xz.x; _velocity.z = xz.z; }
@@ -65,7 +65,9 @@ public class PlayerMotor : MonoBehaviour
         {
             MovementQuake.ReorientVelocityPreserveSpeed(ref _velocity, wishDir, stats.AirTurnRateRad * dt);
         }
-        MovementQuake.ClampHorizontalSpeed(ref _velocity, stats.EffectiveMaxHorizSpeed);
+        //MovementQuake.ClampHorizontalSpeed(ref _velocity, stats.EffectiveMaxHorizSpeed);
+
+        //ApplyAirDrag(dt);
         cc.Move(_velocity * dt);
 
         //After a Move, if you hit something above, kill upward speed so you don’t bob downward on the next frame:
@@ -75,11 +77,28 @@ public class PlayerMotor : MonoBehaviour
         }
     }
 
+    // keep it simple and stable
+    void ApplyAirDrag(float dt)
+    {
+        if (airDragPerSecond <= 0f) return;
+        Vector3 flat = new Vector3(_velocity.x, 0f, _velocity.z);
+        float sp = flat.magnitude;
+        if (sp <= 1e-4f) return;
+
+        // linear drag: reduce speed by d u/s
+        float newSp = Mathf.Max(0f, sp - airDragPerSecond * dt);
+        Vector3 newFlat = flat * (newSp / sp);
+        _velocity.x = newFlat.x;
+        _velocity.z = newFlat.z;
+    }
+
     public void DashBurst(Vector3 dir)
     {
         _velocity.x = dir.x * stats.EffectiveDashSpeed;
         _velocity.z = dir.z * stats.EffectiveDashSpeed;
     }
+
+
 
     public void SlideStep(Vector3 wishDir, float slideSpeed, float slideFriction, float dt)
     {

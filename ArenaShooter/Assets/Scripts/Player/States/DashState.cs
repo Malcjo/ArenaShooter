@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 
 public class DashState : IPlayerState
@@ -10,6 +11,7 @@ public class DashState : IPlayerState
 
     public void Enter()
     {
+        Debug.Log("dash");
         // gate by charges and current dash flag
         if (ctx.stats.IsDashing || !ctx.stats.HasDashCharge)
         {

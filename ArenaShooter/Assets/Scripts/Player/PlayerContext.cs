@@ -66,6 +66,13 @@ public class PlayerContext : MonoBehaviour
         Debug.Log(playerInput.gameObject);
     }
     public bool UsingGamepad => playerInput && playerInput.currentControlScheme == "Gamepad";
+
+    [SerializeField] private string _currentStateName = "<none>";
+    public string CurrentStateName
+    {
+        get => _currentStateName;
+        internal set => _currentStateName = value;
+    }
 }
 
 

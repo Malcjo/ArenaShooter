@@ -40,7 +40,7 @@ public static class MovementQuake
     // Air accelerate (strafe-jump)
     public static void AirAccelerate(ref Vector3 vel, Vector3 wishdir, float wishspeed, float accel, float airMaxSpeed, float dt)
     {
-        if (wishspeed > airMaxSpeed) wishspeed = airMaxSpeed;
+        //if (wishspeed > airMaxSpeed) wishspeed = airMaxSpeed;
         Accelerate(ref vel, wishdir, wishspeed, accel, dt);
     }
 

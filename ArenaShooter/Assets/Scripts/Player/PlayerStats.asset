@@ -16,7 +16,7 @@ MonoBehaviour:
   dashSpeed: 22
   slideSpeed: 12
   maxHorizSpeed: 20
-  airMaxPerFrame: 6
+  airMaxPerFrame: 99
   gravity: -22
   jumpForce: 8.5
   groundFriction: 6
