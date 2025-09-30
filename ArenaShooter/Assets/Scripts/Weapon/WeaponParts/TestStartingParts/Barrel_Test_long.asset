@@ -1,0 +1,30 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 03a3930107785744baf3c4d0614f18c1, type: 3}
+  m_Name: Barrel_Test_long
+  m_EditorClassIdentifier: 
+  type: 0
+  color: {r: 0.54901963, g: 0.69411767, b: 0.8745099, a: 1}
+  localPosition: {x: 0, y: 0, z: 0}
+  localScale: {x: 0.12, y: 0.12, z: 1.99}
+  damageAdd: 0
+  fireRateAdd: 0
+  spreadAdd: 0
+  projectileSpeedAdd: 0
+  recoilAdd: 0
+  ammoAdd: 0
+  damageMul: 1
+  fireRateMul: 1
+  spreadMul: 1
+  projectileSpeedMul: 1
+  recoilMul: 1
+  ammoMul: 1
