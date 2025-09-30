@@ -97,6 +97,7 @@ public class WeaponRuntime : MonoBehaviour
 
     public void TryFire(bool isHeld = true)
     {
+        
         if (_cooldown > 0f) return;
         FireHitscan();
         _cooldown = Stats.fireRate > 0 ? 1f / Stats.fireRate : 0f;

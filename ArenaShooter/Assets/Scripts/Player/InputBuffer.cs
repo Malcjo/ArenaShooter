@@ -47,7 +47,19 @@ public class InputBuffer : MonoBehaviour
     public void OnSlide(InputAction.CallbackContext ctx) { if (ctx.performed) Frame.SlidePressedEdge = true; }
     public void OnInteract(InputAction.CallbackContext ctx) { if (ctx.performed) Frame.InteractPressedEdge = true; }
     // held or tap — choose what you want:
-    public void OnFire(InputAction.CallbackContext ctx) { Frame.fireHeld = ctx.phase == InputActionPhase.Performed;}
+    public void OnFire(InputAction.CallbackContext ctx) 
+    {
+        // edge + held handled correctly
+        if (ctx.started) { Frame.fireHeld = true; Debug.Log("Fire Started"); }    // mouse button down
+        if (ctx.canceled) Frame.fireHeld = false;   // mouse button up
+        Debug.Log($"[InputBuffer] OnFire {ctx.phase} id={GetInstanceID()} fireHeld={Frame.fireHeld}");
+        //Frame.fireHeld = ctx.phase == InputActionPhase.Performed;
+    }
+
+    void Awake()
+    {
+        Debug.Log($"[InputBuffer] Awake id={GetInstanceID()} on {name}");
+    }
 
     void Update()
     {
