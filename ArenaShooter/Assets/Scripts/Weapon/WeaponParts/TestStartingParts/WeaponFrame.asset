@@ -12,15 +12,15 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 03a3930107785744baf3c4d0614f18c1, type: 3}
   m_Name: WeaponFrame
   m_EditorClassIdentifier: 
-  type: 0
+  type: 7
   color: {r: 0.54901963, g: 0.69411767, b: 0.8745099, a: 1}
   localPosition: {x: 0, y: 0, z: 0}
   localScale: {x: 1, y: 1, z: 1}
-  PartModel: {fileID: 9181554219744246642, guid: e12c408183bf69f4e96fc38eebdab526, type: 3}
+  PartModel: {fileID: 6693472179535898573, guid: 28b9cc94fbbece744885a9cd7eaf6aa2, type: 3}
   damageAdd: 0
   fireRateAdd: 0
   spreadAdd: 0
-  projectileSpeedAdd: 0
+  projectileSpeedAdd: 5
   recoilAdd: 0
   ammoAdd: 0
   damageMul: 1

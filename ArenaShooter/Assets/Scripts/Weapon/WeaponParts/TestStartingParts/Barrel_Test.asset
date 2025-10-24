@@ -20,7 +20,7 @@ MonoBehaviour:
   damageAdd: 0
   fireRateAdd: 0
   spreadAdd: 0
-  projectileSpeedAdd: 0
+  projectileSpeedAdd: 10
   recoilAdd: 0
   ammoAdd: 0
   damageMul: 1
