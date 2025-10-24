@@ -10,12 +10,12 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 03a3930107785744baf3c4d0614f18c1, type: 3}
-  m_Name: Barrel_Test_long
+  m_Name: Forgrip
   m_EditorClassIdentifier: 
-  type: 0
-  color: {r: 0.54901963, g: 0.69411767, b: 0.8745099, a: 1}
-  localPosition: {x: 0, y: 0.166, z: -0.103}
-  localScale: {x: 0.0638448, y: 0.0710832, z: 0.9535483}
+  type: 4
+  color: {r: 1, g: 1, b: 1, a: 1}
+  localPosition: {x: -0.0084, y: -0.046, z: 0}
+  localScale: {x: 0.060113452, y: 0.19524163, z: 0.085782}
   damageAdd: 0
   fireRateAdd: 0
   spreadAdd: 0
