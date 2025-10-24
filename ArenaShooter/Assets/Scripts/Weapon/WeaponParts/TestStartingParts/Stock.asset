@@ -12,10 +12,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 03a3930107785744baf3c4d0614f18c1, type: 3}
   m_Name: Stock
   m_EditorClassIdentifier: 
-  type: 0
+  type: 3
   color: {r: 1, g: 1, b: 1, a: 1}
-  localPosition: {x: 0.055, y: 0.136, z: 0.0865}
-  localScale: {x: 0.074510396, y: 0.241728, z: 0.375972}
+  localPosition: {x: 0, y: 0, z: 0}
+  localScale: {x: 1, y: 1, z: 1}
+  PartModel: {fileID: 1053359069472439359, guid: a385a8d4a28d9014a9a9d3bfcc40896a, type: 3}
   damageAdd: 0
   fireRateAdd: 0
   spreadAdd: 0

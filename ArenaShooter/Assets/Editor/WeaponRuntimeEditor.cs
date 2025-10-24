@@ -51,6 +51,7 @@ public class WeaponRuntimeEditor : Editor
             wr.gripSocket,
             wr.sightSocket,
             wr.foregripSocket,
+            wr.weaponFrameSocket,
         };
 
         foreach (var socket in sockets)

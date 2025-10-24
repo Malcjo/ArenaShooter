@@ -12,10 +12,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 03a3930107785744baf3c4d0614f18c1, type: 3}
   m_Name: Forgrip
   m_EditorClassIdentifier: 
-  type: 4
+  type: 6
   color: {r: 1, g: 1, b: 1, a: 1}
-  localPosition: {x: -0.0084, y: -0.046, z: 0}
-  localScale: {x: 0.060113452, y: 0.19524163, z: 0.085782}
+  localPosition: {x: 0, y: 0, z: 0}
+  localScale: {x: 1, y: 1, z: 1}
+  PartModel: {fileID: 3792145498095273308, guid: c65dd66205e96954a8413c7f235d2713, type: 3}
   damageAdd: 0
   fireRateAdd: 0
   spreadAdd: 0

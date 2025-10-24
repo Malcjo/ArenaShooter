@@ -1,6 +1,6 @@
 using UnityEngine;
 
-public enum PartType { Barrel, Receiver, Magazine, Stock, Grip, Sight, Foregrip }
+public enum PartType { Barrel, Receiver, Magazine, Stock, Grip, Sight, Foregrip, WeaponFrame }
 
 [CreateAssetMenu(menuName = "FPS/Weapon Part")]
 public class WeaponPart : ScriptableObject
@@ -11,6 +11,7 @@ public class WeaponPart : ScriptableObject
     public Color color = Color.white;
     public Vector3 localPosition = Vector3.zero;
     public Vector3 localScale = new Vector3(0.12f, 0.12f, 0.12f);
+    public GameObject PartModel;
 
     [Header("Stat adds")]
     public float damageAdd;

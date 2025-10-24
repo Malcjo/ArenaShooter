@@ -1,5 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine;
+using static UnityEngine.UI.Image;
+
 #if UNITY_EDITOR
 using UnityEditor;
 #endif
@@ -36,16 +38,26 @@ public class WeaponRuntime : MonoBehaviour
     [Header("Refs")]
     public Camera aimCamera;                // drag your player camera here
     public LayerMask hitMask = ~0;
+    public Transform projectileOrigin;  // player head/camera pivot
+    public Transform muzzleVisual;      // viewmodel muzzle (on Viewmodel layer)
+    public float maxAimDistance = 1000f;
+
+
+
+    [Header("Viewmodel VFX")]
+    public GameObject tracerPrefab;     // viewmodel-only tracer (Viewmodel layer)
 
     [Header("Sockets on the gun")]
     public Transform muzzle;
-    public Transform barrelSocket, receiverSocket, magazineSocket, stockSocket, gripSocket, sightSocket, foregripSocket;
+    public Transform barrelSocket, receiverSocket, magazineSocket, stockSocket, gripSocket, sightSocket, foregripSocket, weaponFrameSocket;
 
     [Header("Firing Mode")]
     public FireMode fireMode = FireMode.Projectile;
 
     [Header("Projectile (when FireMode = Projectile)")]
     public GameObject projectilePrefab;
+    [Header("Viewmodel VFX")]
+    public VisualBullet visualBulletPrefab;  // put this prefab on the Viewmodel layer
 
     [Header("Base Stats")]
     public WeaponStats baseStats = new WeaponStats
@@ -62,13 +74,17 @@ public class WeaponRuntime : MonoBehaviour
     };
 
     [Header("Equipped Parts")]
-    public WeaponPart barrel, receiver, magazine, stock, grip, sight, foregrip;
+    public WeaponPart barrel, receiver, magazine, stock, grip, sight, foregrip, weaponFrame;
+
+
 
     [SerializeField] WeaponStats _stats;
     public WeaponStats Stats => _stats; // read-only outside
 
     float _cooldown;
     readonly Dictionary<PartType, GameObject> _visuals = new Dictionary<PartType, GameObject>();
+
+
 
     void Start() => Rebuild();
 
@@ -114,6 +130,8 @@ public class WeaponRuntime : MonoBehaviour
         ApplyPart(grip);
         ApplyPart(sight);
         ApplyPart(foregrip);
+        ApplyPart(weaponFrame);
+        
 
         // Build visuals (simple cubes)
         BuildVisual(receiverSocket, receiver);
@@ -123,6 +141,7 @@ public class WeaponRuntime : MonoBehaviour
         BuildVisual(gripSocket, grip);
         BuildVisual(sightSocket, sight);
         BuildVisual(foregripSocket, foregrip);
+        BuildVisual(weaponFrameSocket, weaponFrame);
 
         foreach (var kv in _visuals) Debug.Log("killed " + kv); ;
         
@@ -147,21 +166,18 @@ public class WeaponRuntime : MonoBehaviour
     void BuildVisual(Transform socket, WeaponPart p)
     {
         if (!socket || !p) return;
-        var cube = GameObject.CreatePrimitive(PrimitiveType.Cube);
+        var partModel = Instantiate(p.PartModel, socket);
+        //var cube = GameObject.CreatePrimitive(PrimitiveType.Cube);
 #if UNITY_EDITOR
-        if (!Application.isPlaying) Undo.RegisterCreatedObjectUndo(cube, "Create Weapon Part Visual");
+        if (!Application.isPlaying) Undo.RegisterCreatedObjectUndo(partModel, "Create Weapon Part Visual");
 #endif
-        cube.name = p.name;
-        cube.transform.SetParent(socket, false);
-        cube.transform.localPosition = p.localPosition;
-        cube.transform.localRotation = Quaternion.identity;
-        cube.transform.localScale = p.localScale;
-        DestroyImmediate(cube.GetComponent<BoxCollider>());
+        
+        partModel.transform.localPosition = p.localPosition;
+        partModel.transform.localRotation = Quaternion.identity;
+        //partModel.transform.localScale = p.localScale;
+        partModel.transform.SetParent(socket, false);
 
-        var r = cube.GetComponent<Renderer>();
-        r.sharedMaterial = new Material(Shader.Find("Standard"));
-        r.sharedMaterial.color = p.color;
-        _visuals[p.type] = cube;
+        _visuals[p.type] = partModel;
         
     }
 
@@ -193,6 +209,14 @@ public class WeaponRuntime : MonoBehaviour
     void Update()
     {
         if (_cooldown > 0f) _cooldown -= Time.deltaTime;
+    }
+
+    public Camera worldCam, weaponCam;
+    void LateUpdate()
+    {
+        if (!worldCam || !weaponCam) return;
+        weaponCam.transform.SetPositionAndRotation(worldCam.transform.position, worldCam.transform.rotation);
+        // Optional: weaponCam.fieldOfView = worldCam.fieldOfView;
     }
 
     // ----------------------
@@ -227,38 +251,63 @@ public class WeaponRuntime : MonoBehaviour
     // ------------------------
     void FireProjectile()
     {
-        if (!projectilePrefab || !muzzle)
+        if (!projectilePrefab || !projectileOrigin)
         {
-            Debug.LogWarning("WeaponRuntime: Missing projectilePrefab or muzzle.");
+            Debug.LogWarning("Missing projectilePrefab or projectileOrigin.");
             return;
         }
 
-        var origin = muzzle.position;
-        var forward = aimCamera ? aimCamera.transform.forward : muzzle.forward;
-        int pelletCount = Mathf.Max(1, Stats.pellets);
+        Vector3 aim = GetAimPoint(out var _);
+        int pellets = Mathf.Max(1, Stats.pellets);
 
-        // Define which tags to ignore (Player, Weapon, etc.)
-        string[] ignoreTags = new string[] { "Player", "Weapon" };
-
-        for (int i = 0; i < pelletCount; i++)
+        for (int i = 0; i < pellets; i++)
         {
-            Vector3 dir = ApplySpread(forward, Stats.spread);
-            var proj = Instantiate(projectilePrefab, origin, Quaternion.LookRotation(dir));
-            var initVel = dir * Mathf.Max(0f, Stats.projectileSpeed);
-            var lifeTime = (Stats.projectileLifetime + proj.GetComponent<Projectile>().GetLife());
+            // 1) REAL PHYSICS projectile from the camera/head
+            Vector3 dirWorld = DirFrom(projectileOrigin, aim, Stats.spread);
 
-            proj.GetComponent<Projectile>().Init(
-                velocity: initVel,
+            var go = Instantiate(projectilePrefab, projectileOrigin.position, Quaternion.LookRotation(dirWorld));
+            var proj = go.GetComponent<Projectile>();
+            if (!proj) { Debug.LogError("Projectile prefab missing Projectile component."); Destroy(go); return; }
+
+            proj.Init(
+                velocity: dirWorld * Mathf.Max(0, Stats.projectileSpeed),
                 dmg: Stats.damage,
                 grav: Stats.projectileGravity,
-                life: lifeTime,
+                life: Stats.projectileLifetime,
                 mask: hitMask,
-                ignore: new[] { "Player", "Weapon" }
+                ignore: new[] { "Player", "Projectile" }
             );
 
-            Debug.Log(proj.GetComponent<Projectile>().GetLife());
+            // 2) VIEWMODEL-ONLY visual bullet from the muzzle
+            if (visualBulletPrefab && muzzleVisual)
+            {
+                // build a direction from the muzzle to the same aim point, with the same spread
+                Vector3 dirView = DirFrom(muzzleVisual, aim, Stats.spread);
+
+                // life: match time-to-aim so it disappears around impact time
+                float distanceToAimFromCamera = Vector3.Distance(projectileOrigin.position, aim);
+                float timeToHit = Stats.projectileSpeed > 0f ? distanceToAimFromCamera / Stats.projectileSpeed : 0.1f;
+
+                var vb = Instantiate(visualBulletPrefab, muzzleVisual.position, Quaternion.LookRotation(dirView));
+                // ensure the whole instance is on the Viewmodel layer so only the WeaponCamera sees it
+                SetLayerRecursively(vb.gameObject, LayerMask.NameToLayer("Viewmodel"));
+                vb.Init(muzzleVisual.position, dirView, Mathf.Max(0, Stats.projectileSpeed), timeToHit);
+            }
         }
     }
+
+    // helper
+    static void SetLayerRecursively(GameObject go, int layer)
+    {
+        if (!go) return;
+        go.layer = layer;
+        foreach (Transform c in go.transform) SetLayerRecursively(c.gameObject, layer);
+    }
+
+
+    // helper to put the whole VFX object on the Viewmodel layer
+
+
 
 
     // Utility: spread around a direction
@@ -282,7 +331,31 @@ public class WeaponRuntime : MonoBehaviour
             case PartType.Grip: grip = part; break;
             case PartType.Sight: sight = part; break;
             case PartType.Foregrip: foregrip = part; break;
+            case PartType.WeaponFrame: weaponFrame = part; break;
         }
         Rebuild();
     }
+
+    Vector3 GetAimPoint(out bool hit)
+    {
+        hit = false;
+        Ray ray = aimCamera.ViewportPointToRay(new Vector3(0.5f, 0.5f));
+        if (Physics.Raycast(ray, out var h, maxAimDistance, hitMask, QueryTriggerInteraction.Ignore))
+        {
+            hit = true;
+            return h.point;
+        }
+        return ray.origin + ray.direction * maxAimDistance;
+    }
+
+    Vector3 DirFrom(Transform origin, Vector3 aimPoint, float spreadDeg)
+    {
+        Vector3 dir = (aimPoint - origin.position).normalized;
+        if (spreadDeg <= 0f) return dir;
+
+        // random small cone around dir
+        Vector3 axis = Random.onUnitSphere;
+        return (Quaternion.AngleAxis(Random.Range(-spreadDeg, spreadDeg), axis) * dir).normalized;
+    }
+
 }

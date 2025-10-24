@@ -15,7 +15,8 @@ MonoBehaviour:
   type: 5
   color: {r: 0.3372549, g: 0.77647066, b: 0.34901962, a: 1}
   localPosition: {x: 0, y: 0, z: 0}
-  localScale: {x: 0.12, y: 0.12, z: 0.12}
+  localScale: {x: 1, y: 1, z: 1}
+  PartModel: {fileID: 6303592503484396726, guid: 8d719d5761752694492a73d13eb51bd1, type: 3}
   damageAdd: 0
   fireRateAdd: 0
   spreadAdd: 0
