@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 
 [RequireComponent(typeof(Rigidbody))]
@@ -14,11 +15,15 @@ public class Projectile : MonoBehaviour
     public LayerMask hitMask = ~0;
     public string[] ignoreTags = { "Player"};
 
+    // ADD: for proper DamageInfo
+    public GameObject instigator;   // who fired
+    public DamageType damageType = DamageType.Bullet;
+
     Rigidbody _rb;
     bool _initialized;
     float _age;
 
-    public void Init(Vector3 velocity, float dmg, float grav, float life, LayerMask mask, string[] ignore = null)
+    public void Init(Vector3 velocity, float dmg, float grav, float life, LayerMask mask, string[] ignore = null, GameObject who = null)
     {
         _rb = GetComponent<Rigidbody>();
         _rb.mass = mass;
@@ -31,6 +36,9 @@ public class Projectile : MonoBehaviour
         lifeTime = Mathf.Max(0.05f, life);
         hitMask = mask;
         if (ignore != null) ignoreTags = ignore;
+
+        // ADD:
+        instigator = who;
 
         _initialized = true;
     }
@@ -64,11 +72,25 @@ public class Projectile : MonoBehaviour
     {
         if (ShouldIgnore(col.collider)) return;
 
-        // Damageable interface optional
-        col.collider.GetComponent<IDamageable>()?.Damage(damage);
+        // ADD: build DamageInfo and notify Entity
+        Vector3 p = col.contacts.Length > 0 ? col.contacts[0].point : transform.position;
+        Vector3 n = col.contacts.Length > 0 ? col.contacts[0].normal : -transform.forward;
+
+        // per-part multiplier via Hitbox (optional)
+        float mult = 1f;
+        if (col.collider.TryGetComponent<Hitbox>(out var hb) && hb.owner) mult = hb.damageMultiplier;
+
+        var ent = col.collider.GetComponentInParent<Entity>();
+        if (ent != null && ent.CanTakeDamage)
+        {
+            Debug.Log("Take Damage! " + damage * mult);
+            Vector3 impulse = _rb.velocity.normalized * 20f;
+            var info = new DamageInfo(damage * mult, damageType, p, n, impulse, instigator ? instigator : this.gameObject, this.gameObject);
+            ent.ApplyDamage(info);
+        }
 
         // Debug line
-        Debug.DrawRay(col.contacts[0].point, col.contacts[0].normal * 0.3f, Color.red, 1f);
+        Debug.DrawRay(p, n * 0.3f, Color.red, 1f);
 
         Destroy(gameObject);
     }

@@ -57,6 +57,8 @@ MonoBehaviour:
   ignoreTags:
   - Player
   - Projectile
+  instigator: {fileID: 0}
+  damageType: 0
 --- !u!54 &4737974824824941069
 Rigidbody:
   m_ObjectHideFlags: 0
@@ -72,7 +74,7 @@ Rigidbody:
   m_IsKinematic: 0
   m_Interpolate: 0
   m_Constraints: 0
-  m_CollisionDetection: 0
+  m_CollisionDetection: 1
 --- !u!135 &144992521506121895
 SphereCollider:
   m_ObjectHideFlags: 0
@@ -82,7 +84,7 @@ SphereCollider:
   m_GameObject: {fileID: 888204508549964160}
   m_Material: {fileID: 0}
   m_IsTrigger: 0
-  m_Enabled: 0
+  m_Enabled: 1
   serializedVersion: 2
   m_Radius: 0.5
   m_Center: {x: 0, y: 0, z: 0}

@@ -41,6 +41,17 @@ public class WeaponRuntime : MonoBehaviour
     public Transform projectileOrigin;  // player head/camera pivot
     public Transform muzzleVisual;      // viewmodel muzzle (on Viewmodel layer)
     public float maxAimDistance = 1000f;
+    public LayerMask aimMask = ~0;      // NEW: used for AIM ray only
+    public Transform ownerRoot;         // NEW: set to your player root (e.g., the top GameObject)
+
+    public struct AimResult
+    {
+        public bool hit;
+        public Vector3 point;
+        public Vector3 normal;
+        public Collider collider;
+    }
+
 
 
 
@@ -186,13 +197,16 @@ public class WeaponRuntime : MonoBehaviour
         if (_cooldown > 0f) return;
         if (Stats.ammo <= 0) return;
 
+        // NEW: one probe per click
+        var aim = GetAimResult();
+
         switch (fireMode)
         {
             case FireMode.Projectile:
-                FireProjectile();
+                FireProjectile(aim);
                 break;
             case FireMode.Hitscan:
-                FireHitscan();
+                FireHitscan(aim);
                 break;
         }
 
@@ -222,21 +236,23 @@ public class WeaponRuntime : MonoBehaviour
     // ----------------------
     // H I T S C A N  (with pellets)
     // ----------------------
-    void FireHitscan()
+    void FireHitscan(AimResult aim)
     {
+        // Minimal placeholder: still damage using camera ray direction,
+        // but now you also have aim.point / aim.collider if you want exact target.
         var origin = aimCamera ? aimCamera.transform.position : (muzzle ? muzzle.position : transform.position);
         var forward = aimCamera ? aimCamera.transform.forward : (muzzle ? muzzle.forward : transform.forward);
 
         int pelletCount = Mathf.Max(1, Stats.pellets);
-
         for (int i = 0; i < pelletCount; i++)
         {
             Vector3 dir = ApplySpread(forward, Stats.spread);
+
+            // If you want “force aim” to aim.point, replace dir with:
+            // dir = ((aim.point - origin).normalized);
             if (Physics.Raycast(origin, dir, out var hit, 200f, hitMask, QueryTriggerInteraction.Ignore))
             {
-                // Try to damage (uncomment if you have IDamageable in project)
-                // hit.collider.GetComponent<IDamageable>()?.Damage(Stats.damage);
-
+                TryDamage(hit, Stats.damage);
                 Debug.DrawLine(origin, hit.point, Color.red, 0.1f);
             }
             else
@@ -246,10 +262,37 @@ public class WeaponRuntime : MonoBehaviour
         }
     }
 
+
+
+    // ADD inside WeaponRuntime (anywhere in the class)
+    void TryDamage(in RaycastHit hit, float dmg)
+    {
+        // Optional: per-part multipliers via Hitbox
+        float mult = 1f;
+        if (hit.collider.TryGetComponent<Hitbox>(out var hb) && hb.owner) mult = hb.damageMultiplier;
+
+        var ent = hit.collider.GetComponentInParent<Entity>();
+        if (ent != null && ent.CanTakeDamage)
+        {
+            Vector3 impulse = (aimCamera ? aimCamera.transform.forward : transform.forward) * 20f;
+            var info = new DamageInfo(
+                amount: dmg * mult,
+                type: DamageType.Bullet,
+                point: hit.point,
+                normal: hit.normal,
+                impulse: impulse,
+                instigator: this.gameObject,
+                source: this.gameObject
+            );
+            ent.ApplyDamage(info);
+        }
+    }
+
+
     // ------------------------
     // P R O J E C T I L E (with pellets)
     // ------------------------
-    void FireProjectile()
+    void FireProjectile(AimResult aim)
     {
         if (!projectilePrefab || !projectileOrigin)
         {
@@ -257,15 +300,17 @@ public class WeaponRuntime : MonoBehaviour
             return;
         }
 
-        Vector3 aim = GetAimPoint(out var _);
         int pellets = Mathf.Max(1, Stats.pellets);
-
         for (int i = 0; i < pellets; i++)
         {
-            // 1) REAL PHYSICS projectile from the camera/head
-            Vector3 dirWorld = DirFrom(projectileOrigin, aim, Stats.spread);
+            // Build direction from origin to the probed aim point, then apply spread
+            Vector3 baseDir = (aim.point - projectileOrigin.position).normalized;
+            Vector3 dirWorld = ApplySpread(baseDir, Stats.spread);
 
-            var go = Instantiate(projectilePrefab, projectileOrigin.position, Quaternion.LookRotation(dirWorld));
+            // Spawn a little in front to avoid intersecting player colliders
+            Vector3 spawnPos = projectileOrigin.position + projectileOrigin.forward * 0.1f;
+
+            var go = Instantiate(projectilePrefab, spawnPos, Quaternion.LookRotation(dirWorld));
             var proj = go.GetComponent<Projectile>();
             if (!proj) { Debug.LogError("Projectile prefab missing Projectile component."); Destroy(go); return; }
 
@@ -275,26 +320,30 @@ public class WeaponRuntime : MonoBehaviour
                 grav: Stats.projectileGravity,
                 life: Stats.projectileLifetime,
                 mask: hitMask,
-                ignore: new[] { "Player", "Projectile" }
+                ignore: new[] { "Player", "Projectile" },
+                who: this.gameObject
             );
 
-            // 2) VIEWMODEL-ONLY visual bullet from the muzzle
+            // VFX projectile from the muzzle (viewmodel)
             if (visualBulletPrefab && muzzleVisual)
             {
-                // build a direction from the muzzle to the same aim point, with the same spread
-                Vector3 dirView = DirFrom(muzzleVisual, aim, Stats.spread);
+                Vector3 dirView = (aim.point - muzzleVisual.position).normalized;
+                dirView = ApplySpread(dirView, Stats.spread);
 
-                // life: match time-to-aim so it disappears around impact time
-                float distanceToAimFromCamera = Vector3.Distance(projectileOrigin.position, aim);
-                float timeToHit = Stats.projectileSpeed > 0f ? distanceToAimFromCamera / Stats.projectileSpeed : 0.1f;
+                float distFromCam = Vector3.Distance(projectileOrigin.position, aim.point);
+                float timeToHit = Stats.projectileSpeed > 0f ? distFromCam / Stats.projectileSpeed : 0.1f;
 
                 var vb = Instantiate(visualBulletPrefab, muzzleVisual.position, Quaternion.LookRotation(dirView));
-                // ensure the whole instance is on the Viewmodel layer so only the WeaponCamera sees it
                 SetLayerRecursively(vb.gameObject, LayerMask.NameToLayer("Viewmodel"));
                 vb.Init(muzzleVisual.position, dirView, Mathf.Max(0, Stats.projectileSpeed), timeToHit);
             }
+
+            // debug
+            Debug.DrawLine(projectileOrigin.position, aim.point, Color.green, 0.1f);
+            Debug.DrawRay(spawnPos, dirWorld * 2f, Color.blue, 0.1f);
         }
     }
+
 
     // helper
     static void SetLayerRecursively(GameObject go, int layer)
@@ -336,16 +385,83 @@ public class WeaponRuntime : MonoBehaviour
         Rebuild();
     }
 
+    AimResult GetAimResult()
+    {
+        var result = new AimResult { hit = false, point = Vector3.zero, normal = Vector3.up, collider = null };
+        if (!aimCamera)
+        {
+            // Fallback if not assigned
+            var p = transform.position + transform.forward * maxAimDistance;
+            result.point = p;
+            return result;
+        }
+
+        Ray ray = aimCamera.ViewportPointToRay(new Vector3(0.5f, 0.5f));
+
+        // Use RaycastAll so we can skip our own colliders
+        var hits = Physics.RaycastAll(ray, maxAimDistance, aimMask, QueryTriggerInteraction.Ignore);
+        if (hits != null && hits.Length > 0)
+        {
+            System.Array.Sort(hits, (a, b) => a.distance.CompareTo(b.distance));
+            for (int i = 0; i < hits.Length; i++)
+            {
+                var h = hits[i];
+                if (ownerRoot && h.collider && h.collider.transform.root == ownerRoot)
+                    continue; // skip self
+
+                result.hit = true;
+                result.point = h.point;
+                result.normal = h.normal;
+                result.collider = h.collider;
+
+                Debug.DrawLine(ray.origin, h.point, Color.cyan, 0.05f);
+                return result;
+            }
+        }
+
+        // No valid hit -> far point
+        result.point = ray.origin + ray.direction * maxAimDistance;
+        result.normal = -ray.direction;
+        Debug.DrawLine(ray.origin, result.point, Color.magenta, 0.05f);
+        return result;
+    }
+
     Vector3 GetAimPoint(out bool hit)
     {
         hit = false;
-        Ray ray = aimCamera.ViewportPointToRay(new Vector3(0.5f, 0.5f));
-        if (Physics.Raycast(ray, out var h, maxAimDistance, hitMask, QueryTriggerInteraction.Ignore))
+        if (!aimCamera)
         {
-            hit = true;
-            return h.point;
+            // fallback
+            hit = false;
+            return transform.position + transform.forward * maxAimDistance;
         }
-        return ray.origin + ray.direction * maxAimDistance;
+
+        // Ray from screen center
+        Ray ray = aimCamera.ViewportPointToRay(new Vector3(0.5f, 0.5f));
+
+        // We want to skip self hits (player & viewmodel). Use RaycastAll and pick the first valid.
+        var hits = Physics.RaycastAll(ray, maxAimDistance, aimMask, QueryTriggerInteraction.Ignore);
+        if (hits != null && hits.Length > 0)
+        {
+            System.Array.Sort(hits, (a, b) => a.distance.CompareTo(b.distance));
+            for (int i = 0; i < hits.Length; i++)
+            {
+                var h = hits[i];
+                // skip if this collider belongs to our own root (player body, character controller, viewmodel, etc.)
+                if (ownerRoot && h.collider && h.collider.transform.root == ownerRoot)
+                    continue;
+
+                hit = true;
+                // debug
+                Debug.DrawLine(ray.origin, h.point, Color.cyan, 0.05f);
+                return h.point;
+            }
+        }
+
+        // No valid hit -> far point straight out of the camera
+        Vector3 fallback = ray.origin + ray.direction * maxAimDistance;
+        Debug.DrawLine(ray.origin, fallback, Color.magenta, 0.05f);
+        return fallback;
     }
 
     Vector3 DirFrom(Transform origin, Vector3 aimPoint, float spreadDeg)
